@@ -1,7 +1,13 @@
+import dotenv from "dotenv";
+dotenv.config();
 // npm install @apollo/server express graphql cors
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
+import {
+	ApolloServerPluginLandingPageLocalDefault,
+	ApolloServerPluginLandingPageProductionDefault,
+} from "@apollo/server/plugin/landingPage/default";
 import express from "express";
 import morgan from "morgan";
 import http from "http";
@@ -57,6 +63,8 @@ type Mutation {
   }
 `;
 
+console.log("process.env.NODE_ENV", process.env.NODE_ENV);
+
 const resolvers = {
 	Query: {
 		books: () => books,
@@ -96,7 +104,16 @@ const httpServer = http.createServer(app);
 const server = new ApolloServer<MyContext>({
 	typeDefs,
 	resolvers,
-	plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+	plugins: [
+		ApolloServerPluginDrainHttpServer({ httpServer }),
+		// Install a landing page plugin based on NODE_ENV
+		process.env.NODE_ENV === "production"
+			? ApolloServerPluginLandingPageProductionDefault({
+					graphRef: "my-graph-id@my-graph-variant",
+					footer: false,
+			  })
+			: ApolloServerPluginLandingPageLocalDefault({ footer: false }),
+	],
 });
 // Ensure we wait for our server to start
 await server.start();
